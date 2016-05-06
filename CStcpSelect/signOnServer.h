@@ -21,7 +21,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#define PORT "3490" // the port client will be connecting to
+#define SIGN_ON_PORT "3490" // the port client will be connecting to
 #define MAXDATASIZE 100 // max number of bytes we can get at once
 
 
@@ -51,6 +51,24 @@ std::string crypt2(std::string msg)
     return eMsg;
 }
 
+/*
+ Decryption function
+ Assumption: msg format will be: 1;clientName;msgPort#
+ */
+std::string deCryptSignOn(std::string msg)
+{
+    std::string decrypted;
+    int i = 2; //ignore first 2 characters
+    while (msg[i] != '#' ||  i < msg.length() ){
+        decrypted += decr[ msg[i] ];
+        i++;
+    }
+    
+    return decrypted;
+}
+
+
+
 //this listend
 void connectToSignOnServer(){
     char* signOnServerIP = "127.0.0.1";
@@ -64,7 +82,7 @@ void connectToSignOnServer(){
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     
-    if ((rv = getaddrinfo(signOnServerIP, PORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(signOnServerIP, SIGN_ON_PORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         exit(1);
     }
@@ -108,7 +126,7 @@ void connectToSignOnServer(){
             exit(1);
         }
         buf[numbytes] = '\0';
-        printf("client: received '%s'\n",buf);
+        printf("client: received '%s'\n",deCryptSignOn(buf).c_str());
     }
     
     

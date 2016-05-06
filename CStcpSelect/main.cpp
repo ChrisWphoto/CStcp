@@ -200,44 +200,20 @@ int main(void)
     
     
     
-    // main loop
+    // main Select() loop
     for(;;) {
-        
+        //First ask the user if they want to send a message to a buddy
         char consoleInput;
-        std::cout << "End of one select loop. Would you like to send a message?";
+        char buddyMsg[256];
+        std::string buddyName;
+        std::cout << "End of one select loop. Would you like to send a message? [y/n] ";
         std:: cin >> consoleInput;
         
         if (consoleInput == 'y'){
-            std::cout << "\ninside create socket \n";
-            int socket_desc;
-            struct sockaddr_in server;
-            
-            //Create socket
-            socket_desc = socket(AF_INET , SOCK_STREAM , 0);
-            if (socket_desc == -1)
-            {
-                printf("Could not create socket");
-            }
-            
-            server.sin_addr.s_addr = inet_addr("127.0.0.1");
-            server.sin_family = AF_INET;
-            server.sin_port = htons( 3490 );
-            
-            //Connect to remote server
-            if (connect(socket_desc , (struct sockaddr *)&server , sizeof(server)) < 0)
-            {
-                puts("connect error");
-                return 1;
-            }
-            
-            std::string clientName = "chris";
-            std::string signOn = "1;" + crypt2( clientName + ";msgPort") + "#";
-            char* cSignOn = const_cast<char*>(signOn.c_str());
-            
-            if (send(socket_desc, cSignOn, strlen(cSignOn), 0) == -1)
-                perror("send");
-            FD_SET(socket_desc, &master);
-            fdmax = socket_desc;
+            std::cout << "Enter name of buddy you want to chat with: ";
+            std::cin >> buddyName;
+            std::cout << "Enter message: \n";
+            std::cin.getline(buddyMsg, 256);
         }
         std::cin.ignore();
         
@@ -247,11 +223,14 @@ int main(void)
             exit(4);
         }
         
-        // run through the existing connections looking for data to read
+        //CHECK FOR NEW CONNCETIONS:
         for(i = 0; i <= fdmax; i++) {
+            
+            // NEW CONNECTION FOUND:
             if (FD_ISSET(i, &read_fds)) { // we got one!!
                 if (i == listener) {
-                    // handle new connections
+                    
+                    //Accept & Print Client Connection Info
                     addrlen = sizeof remoteaddr;
                     newfd = accept(listener,(struct sockaddr *)&remoteaddr,&addrlen);
                     
@@ -267,7 +246,8 @@ int main(void)
                         printf("selectserver: new connection from %s on ""socket %d\n", remoteIP,newfd);
                     }
                 } else {
-                    // handle data from a client
+                    
+                    //DATA FROM PEER: Check if they have left
                     if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
                         // got error or connection closed by client
                         if (nbytes == 0) {
@@ -278,32 +258,21 @@ int main(void)
                         }
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
-                    } else {
-                        //terminate data from connection
+                    }
+                    
+                    //TEXT MSG FROM A PEER: respond
+                    else {
                         buf[sizeof buf] = '\0';
+                        //decrypt message
                         std::string* message = deCrypt(buf);
-                        //chatUsers.insert( std::make_pair(message[0], usersAddr) );
                         printf("Received username: %s msg: %s\n", message[0].c_str(), message[1].c_str());
                         fflush(stdout);
-                        const char* msgNum = "4;";
-                        
-                        std::string welcome = "4;" +
-                        crypt("Welcome to the group\n Users Loggedin:\n" +  getAllUsers(chatUsers));
+                        std::string welcome = "4;" + crypt("Welcome to the group\n Users Loggedin:\n");
                         char* cWelcome = const_cast<char*>(welcome.c_str());
-                        if (send(i, cWelcome, strlen(getAllUsers(chatUsers).c_str()), 0) == -1)
-                            perror("send");
+                        //respond to peer
+                        if (send(i, cWelcome, strlen(cWelcome), 0) == -1)perror("send");
                         
-                        //let every know that somone has joined the chat
-                        for(j = 0; j <= fdmax; j++) {
-                            if (FD_ISSET(j, &master)) {
-                                // except the server and the client who just joined
-                                if (j != listener && j != i) {
-                                    if (send(j, buf, nbytes, 0) == -1) {
-                                        perror("send");
-                                    }
-                                }
-                            }
-                        }
+                    
                     }
                 } // END handle data from client
             } // END got new incoming connection
