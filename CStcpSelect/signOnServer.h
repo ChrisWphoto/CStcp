@@ -58,13 +58,14 @@ std::string crypt2(std::string msg)
 std::string deCryptSignOn(std::string msg)
 {
     std::string decrypted;
-    std::cout << "From signon server " << msg << std::endl;
+    //std::cout << "From signon server " << msg << std::endl;
     int i = 2; //ignore first 2 characters
-    while (msg[i] != '#' ||  i < msg.length() ){
+    decrypted += msg[0];
+    decrypted += msg[1];
+    while (msg[i] != '#' &&  i < msg.length() -1 ){
         decrypted += decr[ msg[i] ];
         i++;
     }
-    
     return decrypted;
 }
 
@@ -87,7 +88,7 @@ void connectToSignOnServer(std::string userName){
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         exit(1);
     }
-    
+    printf("Attempting to connect to signon server at %s %s", signOnServerIP,SIGN_ON_PORT);
     // loop through all the results and connect to the first we can
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
@@ -101,13 +102,6 @@ void connectToSignOnServer(std::string userName){
             perror("client: connect");
             continue;
         }
-        
-        
-        std::string signOn = "1;" + crypt2( userName + ";msgPort") + "#";
-        char* cSignOn = const_cast<char*>(signOn.c_str());
-        if (send(sockfd, cSignOn, strlen(cSignOn), 0) == -1)
-            perror("send");
-        
         break;
     }
     
@@ -118,15 +112,21 @@ void connectToSignOnServer(std::string userName){
     
     inet_ntop(p->ai_family, get_in_addr2((struct sockaddr *)p->ai_addr),
               s, sizeof s);
-    printf("client: connecting to %s\n", s);
+    std::cout<< "Connnected! Sending login info...\n";
+    //prepare and send signon message
+    std::string signOn = "1;" + crypt2( userName + ";msgPort") + "#";
+    char* cSignOn = const_cast<char*>(signOn.c_str());
+    if (send(sockfd, cSignOn, strlen(cSignOn), 0) == -1)
+        perror("send");
     
+    //listen for updated from signon server
     while(1)
     {
         if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }
-        buf[numbytes] = '\0';
+        
         printf("client: received '%s'\n", deCryptSignOn(buf).c_str());
     }
     

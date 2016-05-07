@@ -19,10 +19,12 @@
 #include <iostream>
 #include <thread>
 #include "signOnServer.h"
+#include <unistd.h>
 
 
 #define PORT "5490"   // port we'll connecting to signon server with
 char remoteIP[INET6_ADDRSTRLEN];
+unsigned int sleepMicroSeconds = 2000000;
 
 
 // get sockaddr, IPv4 or IPv6:
@@ -145,7 +147,7 @@ int main(void)
     FD_ZERO(&read_fds);
     
     struct timeval tv; //setting timeout for select function
-    tv.tv_sec = 2;
+    tv.tv_sec = 3;
     tv.tv_usec = 0;
     
     
@@ -158,6 +160,8 @@ int main(void)
     //link up other thread to signOnServer
     std::thread t(connectToSignOnServer, userName);
     t.detach();
+    //let the signon server get connected
+    usleep(sleepMicroSeconds);
     
     // get us a socket and bind it
     memset(&hints, 0, sizeof hints);
