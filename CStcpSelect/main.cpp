@@ -24,6 +24,7 @@
 #define PORT "5490"   // port we'll connecting to signon server with
 char remoteIP[INET6_ADDRSTRLEN];
 
+
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -119,9 +120,7 @@ std::string getAllUsers(std::map<std::string, pair_addr> chatUsers)
 
 int main(void)
 {
-    //link up other thread to signOnServer
-    std::thread t(connectToSignOnServer);
-    t.detach();
+    
     
     fd_set master;    // master file descriptor list
     fd_set read_fds;  // temp file descriptor list for select()
@@ -148,6 +147,17 @@ int main(void)
     struct timeval tv; //setting timeout for select function
     tv.tv_sec = 2;
     tv.tv_usec = 0;
+    
+    
+    //ask for username
+    std::string userName;
+    std::cout << "Enter username: ";
+    std::cin >> userName;
+    
+    
+    //link up other thread to signOnServer
+    std::thread t(connectToSignOnServer, userName);
+    t.detach();
     
     // get us a socket and bind it
     memset(&hints, 0, sizeof hints);

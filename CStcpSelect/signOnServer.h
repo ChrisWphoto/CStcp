@@ -58,6 +58,7 @@ std::string crypt2(std::string msg)
 std::string deCryptSignOn(std::string msg)
 {
     std::string decrypted;
+    std::cout << "From signon server " << msg << std::endl;
     int i = 2; //ignore first 2 characters
     while (msg[i] != '#' ||  i < msg.length() ){
         decrypted += decr[ msg[i] ];
@@ -70,7 +71,7 @@ std::string deCryptSignOn(std::string msg)
 
 
 //this listend
-void connectToSignOnServer(){
+void connectToSignOnServer(std::string userName){
     char* signOnServerIP = "127.0.0.1";
     int sockfd, numbytes;
     char buf[MAXDATASIZE];
@@ -101,8 +102,8 @@ void connectToSignOnServer(){
             continue;
         }
         
-        std::string clientName = "chris";
-        std::string signOn = "1;" + crypt2( clientName + ";msgPort") + "#";
+        
+        std::string signOn = "1;" + crypt2( userName + ";msgPort") + "#";
         char* cSignOn = const_cast<char*>(signOn.c_str());
         if (send(sockfd, cSignOn, strlen(cSignOn), 0) == -1)
             perror("send");
@@ -126,7 +127,7 @@ void connectToSignOnServer(){
             exit(1);
         }
         buf[numbytes] = '\0';
-        printf("client: received '%s'\n",deCryptSignOn(buf).c_str());
+        printf("client: received '%s'\n", deCryptSignOn(buf).c_str());
     }
     
     
